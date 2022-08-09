@@ -7,7 +7,7 @@ const Products = () => {
 
     const productView = (product) => {
         return (
-            <div className={c["product-item"]}>
+            <div key={product.id} className={c["product-item"]}>
                 <div className={c["product-item__img-container"]}><img src={product.image} alt={""}/></div>
                 <div className={c["product-item__title"]}>{product.name}</div>
                 <div className={c["product-item__footer"]}>
