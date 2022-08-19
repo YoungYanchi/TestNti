@@ -1,61 +1,115 @@
-import React, {useEffect} from 'react';
-import c from "./filter.module.scss"
-import {useDispatch, useSelector} from "react-redux";
+import React, {useEffect, useState} from 'react';
+import {useSelector, useDispatch} from "react-redux";
+import c from "./filter.module.scss";
+import {updateFilter, resetFilters} from "../../slices/appSlice";
+import {useTranslation} from "react-i18next";
 
-const Filter = () => {
+export default function Filters(props) {
+
+    const { t } = useTranslation();
+
+    const { setFiltersOpened } = props
     const dispatch = useDispatch()
-    const { categories, selectedCategory, selectedFilters } = useSelector(state => state.app)
-
-    const filterClickHandle = ({field, value}) => {
-
+    const { categories, selectedCategory, selectedFilters } = useSelector(state=>state.app)
+    const defaultFiltersOrder = ["subCategory", "brand", "price", "sections", "distance", "heatingArea", "color"]
+    const [expandedFilters, setExpandedFilters] = useState(defaultFiltersOrder)
+    const filterHandle = ({field, value, type}) => {
+        dispatch(updateFilter({
+            selectedFilters: selectedFilters,
+            category: selectedCategory,
+            field,
+            value,
+            type
+        }))
     }
 
-    // useEffect(() => {
-    //     return (categories) => {
-    //         console.log(categories)
-    //     };
-    // }, []);
+    const resetFilterHandle = () => {
+        dispatch(resetFilters())
+    }
 
     const getFilterView = (name, values) => {
         let type
 
-        switch (name) {
+        switch (name){
             case "price":
                 type = "range"
+                break
+            case "color":
+                type = "color-checkbox"
                 break
             case "brand":
             case "sections":
             case "distance":
             case "subCategory":
-            case "color":
             case "heatingArea":
                 type = "checkbox"
                 break
             default:
                 type = null
         }
-        return type && <div>
-            <p>{name}</p>
-            <div className={c["filter-" + type]}>{values.map(value => {
-                return (
-                    <>
-                        <input type={type}/>
-                        <label>{value}</label>
-                    </>
-                )
-            })}</div>
-        </div>
+
+        return type &&
+            <div key={name} className={`${c["filter"]} ${expandedFilters?.includes(name) ? c["filter_active"] : "" }`}>
+                <div className={`${c["filter__header"]} ${expandedFilters?.includes(name) ? c["filter__header_active"] : "" }`} onClick={()=>{
+                    let temp = JSON.parse(JSON.stringify(expandedFilters))
+
+                    if (temp.includes(name)){
+                        temp.splice(expandedFilters.indexOf(name), 1)
+                        setExpandedFilters(temp)
+                    }else {
+                        temp.push(name)
+                        setExpandedFilters(temp)
+                    }
+                }}>
+                    <p>{name === "subCategory" ? selectedCategory : t(name)}</p>
+                    <img src="images/arrow_bot.svg" alt="arrow"/>
+                </div>
+                <div className={`${c["filter__body"]} ${expandedFilters?.includes(name) ? c["filter__body_active"] : "" } ${c["filter__body_type_" + type]}`}>
+                    {(type === "checkbox" || type === "color-checkbox") && values.map(value=>{
+                        return(
+                            <div key={value}>
+                                <input type={"checkbox"} style={{"--color": value}} onClick={()=>filterHandle({field:name, value, type})} checked={selectedFilters?.[selectedCategory]?.[name]?.includes(value)}/>
+                                <label>{t(value)}</label>
+                            </div>
+                        )
+                    })}
+                    {/* {type === "range" && <RangeSlider
+                        min={100}
+                        max={200}
+                         min={Math.min(...values)}
+                         max={Math.max(...values)}
+                        onChange={({ min, max }) => filterHandle({field:name, value:[min, max], type})}
+                    />
+                } */}
+                    {type === "range" && <input type="range" min={Math.min(values)} max={Math.max(values)} multiple={true}/>}
+                </div>
+            </div>
+
     }
 
+
     return (
-        <div className={c["filters-container"]}>
-            {categories && Object.keys(categories).map(category => {
-                if (category === selectedCategory)
-                    return Object.keys(categories[category]["filters"]).map(key => getFilterView(key, categories[category]["filters"][key]))
-                return null
-            })}
+        <div className={c["filters"]}>
+            <div className={c["filters__container"]}>
+                <p>Фильтры</p>
+                {categories && Object.keys(categories).map(category => {
+                    if (category === selectedCategory)
+                        return defaultFiltersOrder.map(key=>getFilterView(key, categories[category]["filters"][key]))
+                    return null
+                })}
+            </div>
+            <div className={c["filters__actions"]}>
+                <button className={c["filters__actions__apply"]} onClick={()=>{setFiltersOpened(false)}}>
+                    <div>
+                        <img src="images/arrow.svg" alt="" />
+                    </div>
+                    <p>Применить</p>
+                </button>
+                <button className={c["filters__actions__reset"]} onClick={()=>{
+                    resetFilterHandle()
+                    setFiltersOpened(false)
+                }}><p>Сбросить</p><img src='images/close.svg' alt='arrow'/></button>
+            </div>
         </div>
     );
 }
-
-export default Filter;
